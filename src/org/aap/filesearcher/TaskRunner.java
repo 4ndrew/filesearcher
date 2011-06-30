@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011 Andrew Porokhin. All rights reserved.
+ * Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
+ */
 package org.aap.filesearcher;
 
 /**
@@ -23,7 +27,6 @@ public class TaskRunner<T> implements Runnable {
             try {
                 final T t = taskSupplier.pull();
                 if (t != null) {
-                    System.out.println("[" + executorThread.getName() + "] Executing: " + t);
                     taskExecutor.execute(t);
                     tasksProcessed++;
                 }
