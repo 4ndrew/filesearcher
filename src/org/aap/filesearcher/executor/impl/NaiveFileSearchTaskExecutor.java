@@ -3,30 +3,33 @@
  * Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
  */
 
-package org.aap.filesearcher;
+package org.aap.filesearcher.executor.impl;
+
+import org.aap.filesearcher.FileSearchBean;
+import org.aap.filesearcher.executor.TaskAcceptor;
+import org.aap.filesearcher.executor.TaskExecutor;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 /**
  * Simple Naive substring pattern search algorithm implementation.
- * Complexity: O((n-m+1) m),
+ * Complexity: O(nm),
  *  where m - length of substring,
  *  n - length of the searchable text.
  */
-public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchTask> {
+public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
     private final byte[] patternBytes;
-    private final TaskAcceptor<FileSearchTask> resultCollector;
+    private final TaskAcceptor<FileSearchBean> resultCollector;
 
-    public NaiveFileSearchTaskExecutor(String dataSearch, Charset charset, TaskAcceptor<FileSearchTask> resultCollector) {
+    public NaiveFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
         this.resultCollector = resultCollector;
-        this.patternBytes = dataSearch.getBytes(charset);
+        this.patternBytes = patternBytes;
     }
 
     @Override
-    public void execute(FileSearchTask task) throws Exception {
+    public void execute(FileSearchBean task) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
         final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
 

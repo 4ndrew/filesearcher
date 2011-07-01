@@ -5,15 +5,17 @@
 
 package org.aap.filesearcher;
 
+import org.aap.filesearcher.executor.Task;
+
 import java.io.File;
 
 /**
  * File-search task bean.
  */
-public class FileSearchTask implements Task {
+public class FileSearchBean implements Task {
     private final File inputFile;
 
-    public FileSearchTask(File inputFile) {
+    public FileSearchBean(File inputFile) {
         this.inputFile = inputFile;
     }
 
@@ -23,6 +25,6 @@ public class FileSearchTask implements Task {
 
     @Override
     public String toString() {
-        return "FileSearchTask: " + inputFile.toString();
+        return "FileSearchBean: " + inputFile.toString();
     }
 }

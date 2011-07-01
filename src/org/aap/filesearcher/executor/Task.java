@@ -3,7 +3,7 @@
  * Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
  */
 
-package org.aap.filesearcher;
+package org.aap.filesearcher.executor;
 
 /**
  * Task interface marker.
