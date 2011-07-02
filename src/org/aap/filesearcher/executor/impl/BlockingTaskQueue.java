@@ -13,7 +13,11 @@ import java.util.LinkedList;
 /**
  * Simple blocking task queue.
  *
+ * <p>Call to {@link #pull()} will be blocked if queue is empty.
+ * <p>Call to {@link #push(Object)} will be blocked if queue size greater than max size.
+ *
  * @param <T> Task type
+ * @see #BlockingTaskQueue(int)
  */
 public class BlockingTaskQueue<T> implements TaskAcceptor<T>, TaskSupplier<T> {
     private final LinkedList<T> taskQueue;
@@ -24,10 +28,20 @@ public class BlockingTaskQueue<T> implements TaskAcceptor<T>, TaskSupplier<T> {
     private final Object sizeUpdateLock = new Object();
     private int currentSize = 0;
 
+    /**
+     * Create blocking queue with {@link Integer#MAX_VALUE} as max queue size.
+     * @see #BlockingTaskQueue(int)
+     */
     public BlockingTaskQueue() {
         this(Integer.MAX_VALUE);
     }
 
+    /**
+     * Create blocking queue with specified max size (push will be blocked).
+     *
+     * @param maxSize Max size of the queue
+     * @throws IllegalArgumentException if maxSize equals or less zero
+     */
     public BlockingTaskQueue(int maxSize) throws IllegalArgumentException {
         if (maxSize <= 0) {
             throw new IllegalArgumentException("maxSize shall be greater than zero");
@@ -36,6 +50,14 @@ public class BlockingTaskQueue<T> implements TaskAcceptor<T>, TaskSupplier<T> {
         taskQueue = new LinkedList<T>();
     }
 
+    /**
+     * Call to this method can be blocked if queue size is zero.
+     *
+     * @return New object (possibly null)
+     * @throws InterruptedException if interrupted
+     * @see #BlockingTaskQueue(int)
+     */
+    @Override
     public T pull() throws InterruptedException {
         synchronized (taskQueue) {
             while (taskQueue.size() == 0 && !endOfData) {
@@ -52,6 +74,13 @@ public class BlockingTaskQueue<T> implements TaskAcceptor<T>, TaskSupplier<T> {
         return null;
     }
 
+    /**
+     * Call to this method can be blocked if max queue size is reached.
+     *
+     * @throws IllegalArgumentException if task is null
+     * @throws InterruptedException if interrupted
+     */
+    @Override
     public void push(T task) throws IllegalArgumentException, InterruptedException {
         if (task == null) {
             throw new IllegalArgumentException("Task shall not be null");

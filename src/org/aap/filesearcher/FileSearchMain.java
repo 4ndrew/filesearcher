@@ -8,6 +8,8 @@ package org.aap.filesearcher;
 import org.aap.filesearcher.executor.TaskAcceptor;
 import org.aap.filesearcher.executor.TaskExecutor;
 import org.aap.filesearcher.executor.impl.*;
+import org.aap.filesearcher.stats.SimpleTaskAcceptorStats;
+import org.aap.filesearcher.util.ExecutorThread;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,14 +19,25 @@ import java.util.LinkedList;
 
 /**
  * Main class.
+ * How it works:
+ * <ul>
+ *  <li> On start pool of threads will be created (or single-threaded queue if 0 threads specified). Each
+ *  thread pulling queue for new file name and begin processing.
+ *  <li> {@link FileListing} does recursive file listing and pushes file to the queue.
+ *</ul>
+ *
  */
 public class FileSearchMain {
     public static void main(String[] args) throws IOException, InterruptedException {
+        int bufferSize = 8192;
+        boolean printStats = false;
         boolean useNaive = false;
         boolean waitForUserInput = false;
         int threadsCount = 5;
         Charset characterSet = Charset.forName("US-ASCII");
 
+        // Options parsing
+        // TODO: migrate to gnuopts for Java if time permit
         int argumentsIndex = 0;
         while (args.length > argumentsIndex) {
             final String opts = args[argumentsIndex];
@@ -35,16 +48,27 @@ public class FileSearchMain {
                         waitForUserInput = validArgument = true;
                         argumentsIndex++;
                         break;
+                    case 's':
+                        printStats = validArgument = true;
+                        argumentsIndex++;
+                        break;
                     case 'n':
                         useNaive = validArgument = true;
                         argumentsIndex++;
                         break;
-                    case 't':
-                        validArgument = args.length > (argumentsIndex + 1);
-                        if (validArgument) {
-                            threadsCount = Integer.parseInt(args[argumentsIndex + 1]);
-                            argumentsIndex += 2;
+                    case 'b':
+                        if (!(validArgument = args.length > (argumentsIndex + 1))) {
+                            throw new IllegalArgumentException("Argument required for " + opts.charAt(1));
                         }
+                        bufferSize = Integer.parseInt(args[argumentsIndex + 1]);
+                        argumentsIndex += 2;
+                        break;
+                    case 't':
+                        if (!(validArgument = args.length > (argumentsIndex + 1))) {
+                            throw new IllegalArgumentException("Argument required for " + opts.charAt(1));
+                        }
+                        threadsCount = Integer.parseInt(args[argumentsIndex + 1]);
+                        argumentsIndex += 2;
                         break;
                     case 'c':
                         validArgument = args.length > (argumentsIndex + 1);
@@ -102,54 +126,67 @@ public class FileSearchMain {
 
             TaskExecutor<FileSearchBean> taskExecutor;
             if (useNaive) {
-                taskExecutor = new NaiveFileSearchTaskExecutor(patternBytes, reporter);
+                taskExecutor = new NaiveFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
             } else {
-                taskExecutor = new KMPFileSearchTaskExecutor(patternBytes, reporter);
+                taskExecutor = new KMPFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
             }
 
             TaskAcceptor<FileSearchBean> taskAcceptor;
-            final LinkedList<TaskRunner<FileSearchBean>> threadPool = new LinkedList<TaskRunner<FileSearchBean>>();
+            final LinkedList<ExecutorThread<FileSearchBean>> threadPool = new LinkedList<ExecutorThread<FileSearchBean>>();
             if (threadsCount > 0) {
                 final BlockingTaskQueue<FileSearchBean> taskQueue = new BlockingTaskQueue<FileSearchBean>(4096);
                 taskAcceptor = taskQueue;
 
                 for (int i = 0; i < threadsCount; i++) {
                     final TaskRunner<FileSearchBean> taskRunner = new TaskRunner<FileSearchBean>(taskQueue, taskExecutor);
-                    final Thread t = new Thread(taskRunner, "Executor #" + i);
+                    final ExecutorThread<FileSearchBean> t = new ExecutorThread<FileSearchBean>(taskRunner, "Executor #" + i);
                     t.start();
 
-                    threadPool.add(taskRunner);
+                    threadPool.add(t);
                 }
             } else {
+                // single-thread approach
                 taskAcceptor = new SingleTaskQueue<FileSearchBean>(taskExecutor);
             }
 
-            FileListing fileListing = new FileListing(rootDirectory, taskAcceptor);
+            final SimpleTaskAcceptorStats<FileSearchBean> taskCounter = new SimpleTaskAcceptorStats<FileSearchBean>(taskAcceptor);
+
+            final FileListing fileListing = new FileListing(rootDirectory, taskCounter);
             fileListing.run();
 
-            long totalTaskProcessed = 0;
-            for (TaskRunner t : threadPool) {
-                t.getExecutorThread().join();
-                System.out.printf("Thread: %s stopped, task processed: %d\n",
-                        t.getExecutorThread().getName(), t.getTasksProcessed());
-                totalTaskProcessed += t.getTasksProcessed();
+            // Wait for threads...
+            long totalTaskProcessed = taskCounter.getTaskCount();
+            for (ExecutorThread<FileSearchBean> t : threadPool) {
+                t.join();
             }
-            final long timeSpend = System.currentTimeMillis() - startTime;
-            final long filesPerSecond = timeSpend > 0 ? (int)(totalTaskProcessed*1000/timeSpend) : totalTaskProcessed;
-            System.out.printf("Execution time: %d msec, files processed: %d\n" +
-                    "Speed: %d files per sec\n", timeSpend, totalTaskProcessed, filesPerSecond);
+
+            if (printStats) {
+                for (ExecutorThread<FileSearchBean> t : threadPool) {
+                    System.out.printf("Thread '%s' stats: task processed: %d\n",
+                            t.getName(), t.getTaskRunner().getTasksProcessed());
+                }
+                final long timeSpend = System.currentTimeMillis() - startTime;
+                final long filesPerSecond = timeSpend > 0 ? (int)(totalTaskProcessed*1000/timeSpend) : totalTaskProcessed;
+                System.out.printf("Execution time: %d msec, files processed: %d\n" +
+                        "Speed: %d files per sec\n", timeSpend, totalTaskProcessed, filesPerSecond);
+            }
         } else {
             printHelp();
         }
     }
 
+    /**
+     * Just print help to standard output.
+     */
     public static void printHelp() {
         System.out.println("java FileSearcher [options] [--] <path> <string pattern>");
         System.out.println("    Options:");
+        System.out.println("        -t <n>  \tSet processing threads count to <n> (Default: 5)");
+        System.out.println("        -b <n>  \tSet file-input buffer to <n> (Default: 8192)");
+        System.out.println("        -c <charset>  \tSet character set to <charset> (Default: \"US-ASCII\")");
+        System.out.println("        -s      \tPrint stats after processing (Default: no)");
         System.out.println("        -w      \tWait for user input before start (Default: no)");
         System.out.println("        -n      \tUse Naive search algorithm (Default: no)");
-        System.out.println("        -t <n>  \tSet processing threads count to <n> (Default: 5)");
-        System.out.println("        -c <charset>  \tSet character set to <charset> (Default: \"US-ASCII\")");
         System.out.println();
         System.out.println("    <path> - root path");
         System.out.println("    <string pattern> - string pattern for search");

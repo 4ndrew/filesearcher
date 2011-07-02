@@ -6,16 +6,17 @@ package org.aap.filesearcher.executor.impl;
 
 import org.aap.filesearcher.executor.TaskExecutor;
 import org.aap.filesearcher.executor.TaskSupplier;
+import org.apache.log4j.Logger;
 
 /**
  * Runner for task.
  * @param <T> Type of Task.
  */
 public class TaskRunner<T> implements Runnable {
+    private final Logger logger = Logger.getLogger(TaskRunner.class);
     private final TaskSupplier<T> taskSupplier;
     private final TaskExecutor<T> taskExecutor;
     private volatile long tasksProcessed;
-    private volatile Thread executorThread;
 
     public TaskRunner(TaskSupplier<T> taskSupplier, TaskExecutor<T> taskExecutor) {
         this.taskSupplier = taskSupplier;
@@ -25,7 +26,7 @@ public class TaskRunner<T> implements Runnable {
     @Override
     public void run() {
         tasksProcessed = 0;
-        executorThread = Thread.currentThread();
+        Thread executorThread = Thread.currentThread();
         while (!executorThread.isInterrupted()) {
             try {
                 final T t = taskSupplier.pull();
@@ -34,21 +35,18 @@ public class TaskRunner<T> implements Runnable {
                     tasksProcessed++;
                 }
             } catch (InterruptedException e) {
-                System.out.println("Task runner: " + executorThread.getName() + " interrupted.");
+                logger.info(String.format("Task runner: %s interrupted.", executorThread.getName()));
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                System.err.println("Task throws an exception, ignoring...");
-                e.printStackTrace(System.err);
+                logger.error("Task throws an exception, ignoring...", e);
             }
         }
+
+        logger.debug(String.format("Thread %s execution completed.", executorThread.getName()));
     }
 
     public long getTasksProcessed() {
         return tasksProcessed;
-    }
-
-    public Thread getExecutorThread() {
-        return executorThread;
     }
 
 }

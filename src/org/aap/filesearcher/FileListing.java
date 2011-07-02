@@ -6,6 +6,7 @@
 package org.aap.filesearcher;
 
 import org.aap.filesearcher.executor.TaskAcceptor;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -14,6 +15,7 @@ import java.util.LinkedList;
  * File listing.
  */
 public class FileListing implements Runnable {
+    private final Logger logger = Logger.getLogger(FileListing.class);
     private final File rootDirectory;
     private final TaskAcceptor<FileSearchBean> taskQueue;
     private final LinkedList<File> directoryQueue;
@@ -46,7 +48,7 @@ public class FileListing implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace(System.err);
         } finally {
-            System.out.println("Listing finished.");
+            logger.info("Listing finished.");
             taskQueue.signalEndOfData();
         }
     }
