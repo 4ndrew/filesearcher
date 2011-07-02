@@ -20,18 +20,29 @@ import java.io.IOException;
  *  n - length of the searchable text.
  */
 public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
+    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final byte[] patternBytes;
     private final TaskAcceptor<FileSearchBean> resultCollector;
+    private final int bufferSize;
 
-    public NaiveFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
+    public NaiveFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector, int bufferSize) {
         this.resultCollector = resultCollector;
         this.patternBytes = patternBytes;
+        this.bufferSize = bufferSize;
+
+        if (bufferSize < patternBytes.length) {
+            throw new IllegalArgumentException("bufferSize can't be smaller than pattern length");
+        }
+    }
+
+    public NaiveFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
+        this(patternBytes, resultCollector, DEFAULT_BUFFER_SIZE);
     }
 
     @Override
     public void execute(FileSearchBean task) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
-        final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+        final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, bufferSize);
 
         try {
             // Naive substring matching algorithm

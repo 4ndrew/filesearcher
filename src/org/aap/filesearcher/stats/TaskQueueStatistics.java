@@ -3,7 +3,7 @@
  * Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
  */
 
-package org.aap.filesearcher;
+package org.aap.filesearcher.stats;
 
 import org.aap.filesearcher.executor.TaskAcceptor;
 import org.aap.filesearcher.executor.TaskSupplier;

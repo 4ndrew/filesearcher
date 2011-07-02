@@ -20,13 +20,20 @@ import java.io.IOException;
  *  n - length of the searchable text.
  */
 public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
+    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final byte[] patternBytes;
     private final int[] kmpNext;
+    private final int bufferSize;
     private final TaskAcceptor<FileSearchBean> resultCollector;
 
     public KMPFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
+        this(patternBytes, resultCollector, DEFAULT_BUFFER_SIZE);
+    }
+
+    public KMPFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector, int bufferSize) {
         this.resultCollector = resultCollector;
         this.patternBytes = patternBytes;
+        this.bufferSize = bufferSize;
 
         this.kmpNext = new int[patternBytes.length];
 
@@ -52,7 +59,7 @@ public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
     @Override
     public void execute(FileSearchBean task) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
-        final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+        final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, bufferSize);
 
         try {
             final int M = patternBytes.length;
