@@ -22,8 +22,8 @@ import java.util.LinkedList;
  * How it works:
  * <ul>
  *  <li> On start pool of threads will be created (or single-threaded queue if 0 threads specified). Each
- *  thread pulling queue for new file name and begin processing.
- *  <li> {@link FileListing} does recursive file listing and pushes file to the queue.
+ *  thread pulling queue for new file and begin processing.
+ *  <li> {@link FileListing} performs recursive file listing and pushes file to the queue.
  *</ul>
  *
  */
@@ -124,6 +124,7 @@ public class FileSearchMain {
 
             final byte[] patternBytes = stringPattern.getBytes(characterSet);
 
+            // Algorithm selection
             TaskExecutor<FileSearchBean> taskExecutor;
             if (useNaive) {
                 taskExecutor = new NaiveFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
@@ -131,6 +132,7 @@ public class FileSearchMain {
                 taskExecutor = new KMPFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
             }
 
+            // Threading
             TaskAcceptor<FileSearchBean> taskAcceptor;
             final LinkedList<ExecutorThread<FileSearchBean>> threadPool = new LinkedList<ExecutorThread<FileSearchBean>>();
             if (threadsCount > 0) {
@@ -154,21 +156,26 @@ public class FileSearchMain {
             final FileListing fileListing = new FileListing(rootDirectory, taskCounter);
             fileListing.run();
 
-            // Wait for threads...
-            long totalTaskProcessed = taskCounter.getTaskCount();
+            // Wait for all threads...
             for (ExecutorThread<FileSearchBean> t : threadPool) {
                 t.join();
             }
 
+            // Wait for threads...
+            final long totalTaskProcessed = taskCounter.getTaskCount();
+            final long timeSpend = System.currentTimeMillis() - startTime;
+            long threadTimeTotal = 0;
+
             if (printStats) {
                 for (ExecutorThread<FileSearchBean> t : threadPool) {
-                    System.out.printf("Thread '%s' stats: task processed: %d\n",
-                            t.getName(), t.getTaskRunner().getTasksProcessed());
+                    TaskRunner tr = t.getTaskRunner();
+                    System.out.printf("Thread '%s' stats: task processed: %d, time: %d msec\n",
+                            t.getName(), tr.getTasksProcessed(), tr.getThreadUptime());
+                    threadTimeTotal += tr.getThreadUptime();
                 }
-                final long timeSpend = System.currentTimeMillis() - startTime;
                 final long filesPerSecond = timeSpend > 0 ? (int)(totalTaskProcessed*1000/timeSpend) : totalTaskProcessed;
-                System.out.printf("Execution time: %d msec, files processed: %d\n" +
-                        "Speed: %d files per sec\n", timeSpend, totalTaskProcessed, filesPerSecond);
+                System.out.printf("Execution time: %d msec (threads uptime: %d msec), files processed: %d\n" +
+                        "Speed: %d files per sec\n", timeSpend, threadTimeTotal, totalTaskProcessed, filesPerSecond);
             }
         } else {
             printHelp();

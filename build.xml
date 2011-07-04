@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="filesearcher" default="all">
+  
+  
+  <property file="build.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!-- 
+  <property name="skip.tests" value="true"/>
+   -->
+  
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="128m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.pyc/**"/>
+    <exclude name="**/.pyo/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/.git/**"/>
+    <exclude name="**/*.hprof/**"/>
+    <exclude name="**/_svn/**"/>
+    <exclude name="**/.hg/**"/>
+    <exclude name="**/*.lib/**"/>
+    <exclude name="**/*~/**"/>
+    <exclude name="**/__pycache__/**"/>
+    <exclude name="**/.bundle/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.zip"/>
+    <include name="*.war"/>
+    <include name="*.egg"/>
+    <include name="*.ear"/>
+    <include name="*.swc"/>
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <include name="**/?*.properties"/>
+    <include name="**/?*.xml"/>
+    <include name="**/?*.gif"/>
+    <include name="**/?*.png"/>
+    <include name="**/?*.jpeg"/>
+    <include name="**/?*.jpg"/>
+    <include name="**/?*.html"/>
+    <include name="**/?*.dtd"/>
+    <include name="**/?*.tld"/>
+    <include name="**/?*.ftl"/>
+  </patternset>
+  
+  
+  <!-- Project Libraries -->
+  
+  <path id="library.log4j.classpath">
+    <pathelement location="${basedir}/libs/log4j.jar"/>
+  </path>
+  
+  
+  <!-- Global Libraries -->
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module FileSearcher -->
+  
+  <dirname property="module.filesearcher.basedir" file="${ant.file}"/>
+  
+  
+  
+  <property name="compiler.args.filesearcher" value="${compiler.args}"/>
+  
+  <property name="filesearcher.output.dir" value="${module.filesearcher.basedir}/out/production/FileSearcher"/>
+  <property name="filesearcher.testoutput.dir" value="${module.filesearcher.basedir}/out/test/FileSearcher"/>
+  
+  <path id="filesearcher.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="filesearcher.module.production.classpath">
+    <path refid="library.log4j.classpath"/>
+  </path>
+  
+  <path id="filesearcher.runtime.production.module.classpath">
+    <pathelement location="${filesearcher.output.dir}"/>
+    <path refid="library.log4j.classpath"/>
+  </path>
+  
+  <path id="filesearcher.module.classpath">
+    <pathelement location="${filesearcher.output.dir}"/>
+    <path refid="library.log4j.classpath"/>
+  </path>
+  
+  <path id="filesearcher.runtime.module.classpath">
+    <pathelement location="${filesearcher.testoutput.dir}"/>
+    <pathelement location="${filesearcher.output.dir}"/>
+    <path refid="library.log4j.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.filesearcher">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.filesearcher">
+    <patternset refid="excluded.from.module.filesearcher"/>
+  </patternset>
+  
+  <path id="filesearcher.module.sourcepath">
+    <dirset dir="${module.filesearcher.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.filesearcher" depends="compile.module.filesearcher.production,compile.module.filesearcher.tests" description="Compile module FileSearcher"/>
+  
+  <target name="compile.module.filesearcher.production" description="Compile module FileSearcher; production classes">
+    <mkdir dir="${filesearcher.output.dir}"/>
+    <javac destdir="${filesearcher.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.filesearcher}"/>
+      <bootclasspath refid="filesearcher.module.bootclasspath"/>
+      <classpath refid="filesearcher.module.production.classpath"/>
+      <src refid="filesearcher.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.filesearcher"/>
+    </javac>
+    
+    <copy todir="${filesearcher.output.dir}">
+      <fileset dir="${module.filesearcher.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.filesearcher.tests" depends="compile.module.filesearcher.production" description="compile module FileSearcher; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.filesearcher" description="cleanup module">
+    <delete dir="${filesearcher.output.dir}"/>
+    <delete dir="${filesearcher.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.filesearcher" description="cleanup all"/>
+  
+  <target name="build.modules" depends="init, clean, compile.module.filesearcher" description="build all modules"/>
+  
+  <target name="init.artifacts">
+    <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
+    <property name="artifact.output.filesearcher:jar" value="${basedir}/out/artifacts/FileSearcher_jar"/>
+    <mkdir dir="${artifacts.temp.dir}"/>
+    <property name="temp.jar.path.FileSearcher.jar" value="${artifacts.temp.dir}/FileSearcher.jar"/>
+  </target>
+  
+  <target name="artifact.filesearcher:jar" depends="init.artifacts, compile.module.filesearcher" description="Build &apos;FileSearcher:jar&apos; artifact">
+    <property name="artifact.temp.output.filesearcher:jar" value="${artifacts.temp.dir}/FileSearcher_jar"/>
+    <mkdir dir="${artifact.temp.output.filesearcher:jar}"/>
+    <jar destfile="${temp.jar.path.FileSearcher.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
+      <zipfileset file="${basedir}/src/META-INF/MANIFEST.MF" prefix="META-INF"/>
+      <zipfileset dir="${filesearcher.output.dir}"/>
+      <zipfileset src="${basedir}/libs/log4j.jar"/>
+      <zipfileset file="${basedir}/src/log4j.xml"/>
+    </jar>
+    <copy file="${temp.jar.path.FileSearcher.jar}" tofile="${artifact.temp.output.filesearcher:jar}/FileSearcher.jar"/>
+  </target>
+  
+  <target name="build.all.artifacts" depends="artifact.filesearcher:jar" description="Build all artifacts">
+    <mkdir dir="${artifact.output.filesearcher:jar}"/>
+    <copy todir="${artifact.output.filesearcher:jar}">
+      <fileset dir="${artifact.temp.output.filesearcher:jar}"/>
+    </copy>
+    
+    <!-- Delete temporary files -->
+    <delete dir="${artifacts.temp.dir}"/>
+  </target>
+  
+  <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
+</project>
