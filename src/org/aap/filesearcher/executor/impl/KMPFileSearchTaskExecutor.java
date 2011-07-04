@@ -62,7 +62,6 @@ public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
         final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, bufferSize);
 
         try {
-            final int M = patternBytes.length;
             int j = 0;
             int buff;
             while ((buff = bufferedInputStream.read()) != -1 && j < patternBytes.length) {
@@ -70,9 +69,12 @@ public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
                     j = kmpNext[j];
                 }
                 j++;
-            }
-            if (j == M) {
-                resultCollector.push(task);
+
+                if (j >= patternBytes.length) {
+                    resultCollector.push(task);
+                    break;
+                    //  j = kmpNext[j];
+                }
             }
         } finally {
             try {
