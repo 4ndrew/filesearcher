@@ -32,6 +32,7 @@ public class FileSearchMain {
         int bufferSize = 8192;
         boolean printStats = false;
         boolean useNaive = false;
+        boolean useFastNIO = false;
         boolean waitForUserInput = false;
         int threadsCount = 5;
         Charset characterSet = Charset.forName("US-ASCII");
@@ -54,6 +55,10 @@ public class FileSearchMain {
                         break;
                     case 'n':
                         useNaive = validArgument = true;
+                        argumentsIndex++;
+                        break;
+                    case 'f':
+                        useFastNIO = validArgument = true;
                         argumentsIndex++;
                         break;
                     case 'b':
@@ -128,6 +133,8 @@ public class FileSearchMain {
             TaskExecutor<FileSearchBean> taskExecutor;
             if (useNaive) {
                 taskExecutor = new NaiveFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
+            } else if (useFastNIO) {
+                taskExecutor = new KMPFileSearchTaskExecutorNIO(patternBytes, reporter, bufferSize);
             } else {
                 taskExecutor = new KMPFileSearchTaskExecutor(patternBytes, reporter, bufferSize);
             }
