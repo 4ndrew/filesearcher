@@ -1,0 +1,2 @@
+This project was written for test purposes.
+Main goal to investigate file search speed depending on count of threads involved in search task.
