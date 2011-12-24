@@ -16,11 +16,10 @@ import java.io.IOException;
 /**
  * Simple Naive substring pattern search algorithm implementation.
  * Complexity: O(nm),
- *  where m - length of substring,
- *  n - length of the searchable text.
+ * where m - length of substring,
+ * n - length of the searchable text.
  */
 public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final byte[] patternBytes;
     private final TaskAcceptor<FileSearchBean> resultCollector;
     private final int bufferSize;
@@ -35,12 +34,14 @@ public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchBean>
         }
     }
 
-    public NaiveFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
-        this(patternBytes, resultCollector, DEFAULT_BUFFER_SIZE);
+    @Override
+    public Object initializeBuffer() {
+        // no buffer required for this algorithm
+        return null;
     }
 
     @Override
-    public void execute(FileSearchBean task) throws Exception {
+    public void execute(FileSearchBean task, Object executorBuffer) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
         final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, bufferSize);
 
@@ -71,7 +72,7 @@ public class NaiveFileSearchTaskExecutor implements TaskExecutor<FileSearchBean>
             } catch (IOException ioe) { /* ignore silently */ }
             try {
                 fileInputStream.close();
-            } catch(IOException ioe) { /* ignore silently */ }
+            } catch (IOException ioe) { /* ignore silently */ }
         }
     }
 }

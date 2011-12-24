@@ -21,7 +21,8 @@ public class SingleTaskQueue<T> implements TaskAcceptor<T> {
     @Override
     public void push(T task) throws IllegalArgumentException, InterruptedException {
         try {
-            taskExecutor.execute(task);
+            final Object threadBuffer = taskExecutor.initializeBuffer();
+            taskExecutor.execute(task, threadBuffer);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }

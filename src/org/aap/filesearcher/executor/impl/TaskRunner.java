@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 /**
  * Runner for task.
+ *
  * @param <T> Type of Task.
  */
 public class TaskRunner<T> implements Runnable {
@@ -27,13 +28,14 @@ public class TaskRunner<T> implements Runnable {
     @Override
     public void run() {
         tasksProcessed = 0;
+        final Object threadBuffer = taskExecutor.initializeBuffer();
         final long startTime = System.currentTimeMillis();
         Thread executorThread = Thread.currentThread();
         while (!executorThread.isInterrupted()) {
             try {
                 final T t = taskSupplier.pull();
                 if (t != null) {
-                    taskExecutor.execute(t);
+                    taskExecutor.execute(t, threadBuffer);
                     tasksProcessed++;
                 }
             } catch (InterruptedException e) {

@@ -16,19 +16,14 @@ import java.io.IOException;
 /**
  * Knuth–Morris–Pratt algorithm substring pattern searching algorithm implementation.
  * Complexity: O(m)+O(n)
- *  where m - length of substring,
- *  n - length of the searchable text.
+ * where m - length of substring,
+ * n - length of the searchable text.
  */
 public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final byte[] patternBytes;
     private final int[] kmpNext;
     private final int bufferSize;
     private final TaskAcceptor<FileSearchBean> resultCollector;
-
-    public KMPFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
-        this(patternBytes, resultCollector, DEFAULT_BUFFER_SIZE);
-    }
 
     public KMPFileSearchTaskExecutor(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector, int bufferSize) {
         this.resultCollector = resultCollector;
@@ -57,7 +52,13 @@ public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
     }
 
     @Override
-    public void execute(FileSearchBean task) throws Exception {
+    public Object initializeBuffer() {
+        // no buffer required
+        return null;
+    }
+
+    @Override
+    public void execute(FileSearchBean task, Object executorBuffer) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
         final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, bufferSize);
 
@@ -82,7 +83,7 @@ public class KMPFileSearchTaskExecutor implements TaskExecutor<FileSearchBean> {
             } catch (IOException ioe) { /* ignore silently */ }
             try {
                 fileInputStream.close();
-            } catch(IOException ioe) { /* ignore silently */ }
+            } catch (IOException ioe) { /* ignore silently */ }
         }
     }
 }

@@ -2,4 +2,4 @@ This project was written for test purposes.
 Main goal to investigate file search speed depending on count of threads involved in search task.
 
 TODO:
- * nio/nio2 support
+ * nio2 support

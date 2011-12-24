@@ -14,30 +14,23 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Knuth–Morris–Pratt algorithm substring pattern searching algorithm implementation.
+ * Knuth–Morris–Pratt algorithm substring pattern searching algorithm implementation using
+ * new I/O API (see {@link java.nio}).
+ * <p/>
  * Complexity: O(m)+O(n)
- *  where m - length of substring,
- *  n - length of the searchable text.
+ * where m - length of substring,
+ * n - length of the searchable text.
  */
 public class KMPFileSearchTaskExecutorNIO implements TaskExecutor<FileSearchBean> {
     private final Logger logger = Logger.getLogger(KMPFileSearchTaskExecutorNIO.class);
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final byte[] patternBytes;
     private final int bufferSize;
-    private final Map<Long, ByteBuffer> byteBuffers = Collections.synchronizedMap(new HashMap<Long, ByteBuffer>());
 
     private final int[] kmpNext;
     private final TaskAcceptor<FileSearchBean> resultCollector;
     private int counter = 0;
-
-    public KMPFileSearchTaskExecutorNIO(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector) {
-        this(patternBytes, resultCollector, DEFAULT_BUFFER_SIZE);
-    }
 
     public KMPFileSearchTaskExecutorNIO(byte[] patternBytes, TaskAcceptor<FileSearchBean> resultCollector, int bufferSize) {
         this.resultCollector = resultCollector;
@@ -65,17 +58,15 @@ public class KMPFileSearchTaskExecutorNIO implements TaskExecutor<FileSearchBean
     }
 
     @Override
-    public void execute(FileSearchBean task) throws Exception {
+    public Object initializeBuffer() {
+        return ByteBuffer.allocateDirect(bufferSize);
+    }
+
+    @Override
+    public void execute(FileSearchBean task, Object executorBuffer) throws Exception {
         final FileInputStream fileInputStream = new FileInputStream(task.getInputFile());
         final FileChannel fc = fileInputStream.getChannel();
-
-        // Maintain one byte buffer per thread
-        Long threadId = Thread.currentThread().getId();
-        ByteBuffer byteBuffer = byteBuffers.get(threadId);
-        if (byteBuffer == null) {
-            byteBuffer = ByteBuffer.allocateDirect(bufferSize);
-            byteBuffers.put(threadId, byteBuffer);
-        }
+        final ByteBuffer byteBuffer = (ByteBuffer) executorBuffer;
 
         try {
             int j = 0;
@@ -95,10 +86,10 @@ public class KMPFileSearchTaskExecutorNIO implements TaskExecutor<FileSearchBean
                 byteBuffer.limit(buffReaded);
 
                 logger.debug(String.format("N Buffer reading: %d - %d - %d - %d\n",
-                    byteBuffer.position(),
-                    byteBuffer.limit(),
-                    byteBuffer.capacity(),
-                    byteBuffer.remaining()));
+                        byteBuffer.position(),
+                        byteBuffer.limit(),
+                        byteBuffer.capacity(),
+                        byteBuffer.remaining()));
 
                 while (byteBuffer.hasRemaining() && j < patternBytes.length) {
                     final int currChar = byteBuffer.get() & 0xff;
@@ -116,18 +107,18 @@ public class KMPFileSearchTaskExecutorNIO implements TaskExecutor<FileSearchBean
                 }
                 byteBuffer.clear();
                 logger.debug(String.format("N Buffer: %d - %d - %d - %d\n",
-                    byteBuffer.position(),
-                    byteBuffer.limit(),
-                    byteBuffer.capacity(),
-                    byteBuffer.remaining()));
+                        byteBuffer.position(),
+                        byteBuffer.limit(),
+                        byteBuffer.capacity(),
+                        byteBuffer.remaining()));
             }
         } finally {
             try {
                 fc.close();
-            } catch(IOException ioe) { /* ignore silently */ }
+            } catch (IOException ioe) { /* ignore silently */ }
             try {
                 fileInputStream.close();
-            } catch(IOException ioe) { /* ignore silently */ }
+            } catch (IOException ioe) { /* ignore silently */ }
         }
     }
 }
