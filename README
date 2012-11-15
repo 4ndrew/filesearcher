@@ -3,3 +3,5 @@ Main goal to investigate file search speed depending on count of threads involve
 
 TODO:
  * nio/nio2 support
+ * maven
+ * aop for performance count
